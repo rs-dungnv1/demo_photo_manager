@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
@@ -15,10 +19,30 @@ class _PhotoGalleryPageState extends State<PhotoGalleryPage> {
   List<AssetEntity> media = [];
   List<AssetEntity> selectedMedia = [];
   AssetPathEntity? selectedAlbum;
+  final options = FaceDetectorOptions();
+  late final FaceDetector faceDetector;
+
   @override
   void initState() {
     super.initState();
     checkPermission();
+    faceDetector = FaceDetector(options: options);
+  }
+
+  Future<void> detectFaces(XFile? imageFile) async {
+    if (imageFile == null) {
+      return;
+    }
+    final inputImage = InputImage.fromFilePath(imageFile.path);
+    final List<Face> faces = await faceDetector.processImage(inputImage);
+
+    // Handle the detected faces
+
+    if (faces.isEmpty) {
+      print('There are no faces in this photo');
+    } else {
+      print('There are ${faces.length} faces in this photo');
+    }
   }
 
   Future<void> checkPermission() async {
@@ -62,7 +86,8 @@ class _PhotoGalleryPageState extends State<PhotoGalleryPage> {
     });
   }
 
-  void toggleSelection(AssetEntity asset, {bool isRemove = false}) {
+  Future<void> toggleSelection(AssetEntity asset,
+      {bool isRemove = false}) async {
     if (isRemove) {
       setState(() {
         if (selectedMedia.contains(asset)) {
@@ -71,6 +96,12 @@ class _PhotoGalleryPageState extends State<PhotoGalleryPage> {
       });
       return;
     }
+    final imageFile = await asset.file;
+    if (imageFile == null) {
+      return;
+    }
+    XFile xfile = XFile(imageFile.path);
+    detectFaces(xfile);
     setState(() {
       if (selectedMedia.contains(asset)) {
         selectedMedia.remove(asset); // Bỏ chọn nếu đã được chọn
