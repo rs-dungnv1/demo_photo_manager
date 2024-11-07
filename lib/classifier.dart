@@ -1,5 +1,4 @@
 import 'package:flutter_tflite/flutter_tflite.dart';
-import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:image_picker/image_picker.dart';
 
 class Classifier {
