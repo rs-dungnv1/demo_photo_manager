@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:demo_photo_gallery/classifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -15,6 +14,8 @@ class PhotoGalleryPage extends StatefulWidget {
 }
 
 class _PhotoGalleryPageState extends State<PhotoGalleryPage> {
+  final Classifier classifier = Classifier();
+
   List<AssetPathEntity> albums = [];
   List<AssetEntity> media = [];
   List<AssetEntity> selectedMedia = [];
@@ -26,23 +27,14 @@ class _PhotoGalleryPageState extends State<PhotoGalleryPage> {
   void initState() {
     super.initState();
     checkPermission();
+    classifier.tfLteInit();
     faceDetector = FaceDetector(options: options);
   }
 
-  Future<void> detectFaces(XFile? imageFile) async {
-    if (imageFile == null) {
-      return;
-    }
-    final inputImage = InputImage.fromFilePath(imageFile.path);
-    final List<Face> faces = await faceDetector.processImage(inputImage);
-
-    // Handle the detected faces
-
-    if (faces.isEmpty) {
-      print('There are no faces in this photo');
-    } else {
-      print('There are ${faces.length} faces in this photo');
-    }
+  @override
+  void dispose() {
+    classifier.tfLteDispose();
+    super.dispose();
   }
 
   Future<void> checkPermission() async {
@@ -101,7 +93,22 @@ class _PhotoGalleryPageState extends State<PhotoGalleryPage> {
       return;
     }
     XFile xfile = XFile(imageFile.path);
-    detectFaces(xfile);
+    final haveFace = await classifier.detectFaces(xfile);
+    if (haveFace) {
+      print('có mặt nè');
+      final imageAfterCrop = await classifier.classifierImage(xfile);
+      if (imageAfterCrop != null) {
+        print('Crop được rồi nè');
+        final predictedResults = await classifier.predict(imageAfterCrop) ?? [];
+        if (predictedResults.isNotEmpty) {
+          if (predictedResults[0]['label'] != null) {
+            print(predictedResults[0]['label']);
+          }
+        }
+      }
+    } else {
+      print('không có mặt nè');
+    }
     setState(() {
       if (selectedMedia.contains(asset)) {
         selectedMedia.remove(asset); // Bỏ chọn nếu đã được chọn
